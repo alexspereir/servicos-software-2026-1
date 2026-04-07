@@ -1,7 +1,5 @@
-fastapi
-uvicorn
-python-multipart
-requests
-transformers
-torch
-Pillow
+flask
+ultralytics
+opencv-python-headless
+numpy
+pillow

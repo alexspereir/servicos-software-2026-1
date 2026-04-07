@@ -1,37 +1,62 @@
-import io
-import requests
-from fastapi import FastAPI, UploadFile, File
-from transformers import pipeline
-from PIL import Image
+import os
+import uuid
+import cv2
+from flask import Flask, request, jsonify, send_from_directory
+from ultralytics import YOLO
 
-app = FastAPI()
+app = Flask(__name__)
 
-# Carrega um modelo leve de classificação de imagens da Hugging Face
-print("Carregando modelo de visão...")
-classificador = pipeline("image-classification", model="google/vit-base-patch16-224")
+UPLOAD_DIR = 'uploads'
+OUTPUT_DIR = 'output'
 
-@app.post("/analisar")
-async def analisar_imagem(file: UploadFile = File(...)):
-    # Lê a imagem
-    conteudo = await file.read()
-    imagem = Image.open(io.BytesIO(conteudo))
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Executa a inferência na IA
-    resultados = classificador(imagem)
-    rotulo_predito = resultados[0]["label"]  # Pega a predição com maior confiança
+model = YOLO('yolov8n.pt')
 
-    # Monta a requisição REST para enviar à API de Armazenamento
-    files = {"file": (file.filename, conteudo, file.content_type)}
-    data = {"rotulo": rotulo_predito}
+@app.route('/')
+def home():
+    return 'API de visão com YOLO ativa'
 
-    try:
-        res_db = requests.post(
-            "http://api-armazenamento:8082/salvar", files=files, data=data
-        )
-        status_db = (
-            "Salvo com sucesso" if res_db.status_code == 200 else "Erro ao salvar"
-        )
-    except:
-        status_db = "Falha na comunicação com api-armazenamento"
+@app.route('/detect', methods=['POST'])
+def detect():
+    if 'image' not in request.files:
+        return jsonify({'error': 'Nenhuma imagem enviada no campo "image"'}), 400
+    
+    file = request.files['image']
 
-    return {"rotulo": rotulo_predito, "status_db": status_db}
+    if file.filename =='':
+        return jsonify({'error': 'Arquivo vazio'}), 400
+    
+    ext = os.path.splittext(file.filename)[1].lower()
+    if ext == '':
+        ext = '.jpg'
+
+    unique_name = str(uuid.uuid4())
+    input_path = os.path.join(UPLOAD_DIR, f'{unique_name}{ext}')
+    output_path = os.path.join(OUTPUT_DIR, f'{unique_name}.jpg')
+
+    file.save(input_path)
+
+    results = model(input_path)
+
+    annotated = results[0].plot()
+    cv2.imwrite(output_path, annotated)
+
+    if results[0].boxes is not None and len(results[0].boxes) > 0:
+        class_ids = results[0].boxes.cls.tolist()
+        detections = [results[0].names[int(i)] for i in class_ids]
+    else:
+        detections = []
+
+    return jsonify({
+        'image_url': f'/output/{unique_name}.jpg',
+        'detections': detections
+    })
+
+@app.route('/output/<filename>')
+def output_file(filename):
+    return send_from_directory(OUTPUT_DIR, filename)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8081)
