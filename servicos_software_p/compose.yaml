@@ -8,50 +8,24 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  gradio-service:
-    build:
-      context: gradio-json
-      dockerfile: Dockerfile 
-    ports:
-      - 7860:7860
-    volumes:
-      - /work
-
-  backend-json:
-    build:
-      context: backend-json
-      dockerfile: Dockerfile 
-    ports:
-      - 8080:8080
-    volumes:
-      - /code
-
   gradio-visao:
     build:
       context: gradio-visao
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile 
     ports:
-      - "7861:7861"
+      - 7861:7861
     depends_on:
       - api-visao
+    environment:
+      - BACKEND_URL=http://api-visao:8081
+    volumes:
+      - ./gradio-visao:/app
 
   api-visao:
     build:
       context: api-visao
       dockerfile: Dockerfile
     ports:
-      - "8081:8081"
-    depends_on:
-      - api-armazenamento
-
-  api-armazenamento:
-    build:
-      context: api-armazenamento
-      dockerfile: Dockerfile
-    ports:
-    - "8082:8082"
+      - 8081:8081
     volumes:
-    - dados-imagens:/dados
-
-volumes:
-  dados-imagens:
+      - ./api-visao:/app

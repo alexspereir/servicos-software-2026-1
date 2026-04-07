@@ -1,6 +1,7 @@
 import os
 import uuid
 import cv2
+from collections import Counter
 from flask import Flask, request, jsonify, send_from_directory
 from ultralytics import YOLO
 
@@ -28,7 +29,7 @@ def detect():
     if file.filename =='':
         return jsonify({'error': 'Arquivo vazio'}), 400
     
-    ext = os.path.splittext(file.filename)[1].lower()
+    ext = os.path.splitext(file.filename)[1].lower()
     if ext == '':
         ext = '.jpg'
 
@@ -49,11 +50,22 @@ def detect():
     else:
         detections = []
 
-    return jsonify({
-        'image_url': f'/output/{unique_name}.jpg',
-        'detections': detections
-    })
+    if not detections:
+        texto_final = "nenhum objeto detectado"
+    else:
+        counts = Counter(detections)
 
+    resultado_formatado = []
+    for classe, qtd in counts.most_common():
+        resultado_formatado.append(f"{classe}: {qtd}")
+
+    texto_final = "\n".join(resultado_formatado)
+
+    return jsonify({
+        "image_url": f"/output/{unique_name}.jpg",
+        "detections": texto_final
+    })
+  
 @app.route('/output/<filename>')
 def output_file(filename):
     return send_from_directory(OUTPUT_DIR, filename)

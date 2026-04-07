@@ -1,29 +1,56 @@
-import gradio as gr
+import os
+import tempfile
 import requests
+import gradio as gr
 
-def analisar_imagem(imagem_path):
-    if imagem_path is None:
-        return "Nenhuma imagem enviada."
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://api-visao:8081')
+
+def detectar_objetos(image):
+    if image is None:
+        return None, 'Nenhuma imagem enviada'
     
-    with open(imagem_path, "rb") as f:
-        files = {"file": f}
-        try:
-            # Envia a imagem via REST para o backend de IA
-            response = requests.post("http://api-visao:8081/analisar", files=files)
-            if response.status_code == 200:
-                dados = response.json()
-                return f"Rótulo gerado pela IA: {dados.get('rotulo')}\nStatus BD: {dados.get('status_db')}"
-            else:
-                return f"Erro no servidor: {response.status_code}"
-        except Exception as e:
-            return f"Erro de comunicação: {str(e)}"
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+        image.save(tmp.name)
+        temp_path = tmp.name
+
+    with open(temp_path, 'rb') as f:
+        files = {'image': f}
+        response = requests.post(f'{BACKEND_URL}/detect', files=files)
+
+    os.remove(temp_path)
+
+    if response.status_code != 200:
+        return None, f'Erro no backend: {response.text}'
+    
+    data = response.json()
+    image_url = data['image_url']
+    detections = data['detections']
+
+    full_image_url = f'{BACKEND_URL}{image_url}'
+    img_response = requests.get(full_image_url, stream=True)
+
+    if img_response.status_code != 200:
+        return None, 'Não foi possível baixar a imagem processada.'
+    
+    output_tmp = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
+    for chunk in img_response.iter_content(chunk_size=8192):
+        output_tmp.write(chunk)
+    output_tmp.close()
+
+    texto = "Objetos detectados:\n" + detections
+
+    return output_tmp.name, texto
 
 demo = gr.Interface(
-    fn=analisar_imagem,
-    inputs=gr.Image(type="filepath", label="Faça upload de uma imagem"),
-    outputs=gr.Textbox(label="Resultado da IA e Banco de Dados"),
-    title="👁️ Reconhecimento de Imagens"
+    fn=detectar_objetos,
+    inputs=gr.Image(type='pil', label='Envie uma imagem'),
+    outputs=[
+        gr.Image(type='filepath', label='Imagem processada'),
+        gr.Textbox(label='Resultado')
+    ],
+    title='Detector de Objetos com YOLO',
+    description='Envie uma imagem para detectar objetos via API REST.'
 )
 
-if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7861)
+if __name__ == '__main__':
+    demo.launch(server_name='0.0.0.0', server_port=7861)
