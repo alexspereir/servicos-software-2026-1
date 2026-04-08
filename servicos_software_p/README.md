@@ -76,18 +76,18 @@ a imagem com os objetos detectados
 a contagem de cada objeto
 
 5. Exemplo de Saída
-  Objetos detectados:
-  person: 10
-  car: 2
-  backpack: 3
-  traffic light: 1
+   - Objetos detectados:
+   - person: 10
+   - car: 2
+   - backpack: 3
+   - traffic light: 1
 
 ---
 
 ## Tecnologias Utilizadas
-Python
-Flask
-Gradio
-YOLO (Ultralytics)
-OpenCV
-Docker
+   - Python
+   - Flask
+   - Gradio
+   - YOLO (Ultralytics)
+   - OpenCV
+   - Docker
