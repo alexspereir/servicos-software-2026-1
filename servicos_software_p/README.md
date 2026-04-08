@@ -1,80 +1,93 @@
-**Criando uma estrutura para upload de arquivos**
+# Detector de Objetos com YOLO
 
-Vamos criar uma estrutura com os seguintes componentes:
+Este projeto é uma aplicação multicontainer desenvolvida utilizando **Docker, API REST e Gradio**, com o objetivo de detectar objetos em imagens usando um modelo de visão computacional YOLO pré-treinado.
 
-    - Um container para um app gradio-visao que irá apresentar a interface para a seleção de um arquivo de imagem para upload
-    - Um container api-visao que será responsável por receber o nosso arquivo, reconhecer o seu conteúdo e armazená-lo em nosso serviço de armazenamento
-    - Um container api-armazenamento que irá salvar o arquivo em um volume compartilhado e gravar o registro em um banco de dados SQLite.
+---
 
-Passo-a-passo
-Vamos criar uma pasta para cada container:
- - gradio-visao
- - api-visao
- - api-armazenamento
+## Arquitetura do Projeto
 
-Os conteúdos serão desenvolvidos durante a aula e ficarão disponibilizados em nosso repositório github.
+A aplicação é composta por dois containers:
 
-**Gradio Visão**
-Dentro do primeiro container, iremos criar os seguintes arquivos:
+- **Frontend (Gradio)**  
+  Interface web onde o usuário envia imagens e visualiza os resultados.
 
-- Dockerfile
-- app.py
-- requirements.txt
+- **Backend (Flask API)**  
+  Responsável por processar as imagens utilizando o modelo YOLO e retornar os resultados.
 
-Utilizar o código disponível em servicos_software_p/gradio-visao como modelos destes arquivos.
+---
 
-**API VISÃO**
+## Funcionamento
 
-Dentro do container api-visão, iremos criar os seguintes arquivos:
-- Dockerfile
-- main.py
-- requirements.txt
+1. O usuário envia uma imagem pela interface (Gradio).
+2. O frontend envia a imagem para o backend via **requisição POST (API REST)**.
+3. O backend:
+   - recebe a imagem
+   - aplica o modelo YOLO
+   - desenha as caixas de detecção
+   - conta os objetos detectados
+4. O backend retorna:
+   - a imagem processada
+   - a contagem dos objetos detectados
+5. O frontend exibe o resultado ao usuário.
 
-Utilizar o código disponível em servicos_software_p/api-visao como modelos destes arquivos.
+---
 
-**API ARMAZENAMENTO**
+## Funcionalidades
 
-- Dockerfile
-- main.py
-- requirements.txt
+   - Upload de imagens
+   - Detecção de objetos com YOLO
+   - Contagem automática de objetos detectados
+   - Ajuste do nível de confiança (**confidence threshold**) via slider
+   - Retorno visual com caixas delimitadoras
+   - Comunicação entre containers via API REST
 
-**Alteração no arquivo compose.yaml para habilitar os novos containers**
+---
 
-Devem ser acrescentadas as seguintes linhas no arquivo: 
+## Estrutura do Projeto
 
-```xml
-  gradio-visao:
-    build:
-      context: gradio-visao
-      dockerfile: Dockerfile
-    ports:
-      - "7861:7861"
-    depends_on:
-      - api-visao
-
-  api-visao:
-    build:
-      context: api-visao
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8081"
-    depends_on:
-      - api-armazenamento
-
-api-armazenamento:
-  build:
-    context: api-armazenamento
-    dockerfile: Dockerfile
-  ports:
-    - "8082:8082"
-  volumes:
-    - dados-imagens:/dados
-
-volumes:
-  dados-imagens:
-
+```bash
+servicos_software_p/
+├── gradio-visao/   # Frontend (interface do usuário)
+├── api-visao/      # Backend (API + YOLO)
+└── compose.yaml    # Orquestração dos containers
 ```
 
-```sh
-docker compose up -d --build
+---
 
+## Como Executar
+1. Clone o repositório
+   - git clone https://github.com/alexspereir/servicos-software-2026-1.git
+   - cd servicos-software-2026-1/servicos_software_p
+2. Execute os containers
+   - docker compose up --build
+3. Acesse a aplicação
+4. Abra no navegador:
+   - http://localhost:7861
+
+---
+
+## Como Usar
+1. Envie uma imagem
+2. Ajuste o slider de confiança (confidence)
+3. Aguarde o processamento
+
+4. Veja:
+a imagem com os objetos detectados
+a contagem de cada objeto
+
+5. Exemplo de Saída
+  Objetos detectados:
+  person: 10
+  car: 2
+  backpack: 3
+  traffic light: 1
+
+---
+
+## Tecnologias Utilizadas
+Python
+Flask
+Gradio
+YOLO (Ultralytics)
+OpenCV
+Docker
