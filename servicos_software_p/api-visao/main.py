@@ -29,6 +29,8 @@ def detect():
     if file.filename =='':
         return jsonify({'error': 'Arquivo vazio'}), 400
     
+    confidence = request.form.get("confidence", 0.4, type=float)
+    
     ext = os.path.splitext(file.filename)[1].lower()
     if ext == '':
         ext = '.jpg'
@@ -39,7 +41,7 @@ def detect():
 
     file.save(input_path)
 
-    results = model(input_path)
+    results = model(input_path, conf=confidence)
 
     annotated = results[0].plot()
     cv2.imwrite(output_path, annotated)

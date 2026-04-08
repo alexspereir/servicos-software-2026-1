@@ -5,7 +5,7 @@ import gradio as gr
 
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://api-visao:8081')
 
-def detectar_objetos(image):
+def detectar_objetos(image, confidence):
     if image is None:
         return None, 'Nenhuma imagem enviada'
     
@@ -13,9 +13,10 @@ def detectar_objetos(image):
         image.save(tmp.name)
         temp_path = tmp.name
 
-    with open(temp_path, 'rb') as f:
-        files = {'image': f}
-        response = requests.post(f'{BACKEND_URL}/detect', files=files)
+    with open(temp_path, "rb") as f:
+        files = {"image": f}
+        data = {"confidence": confidence}
+        response = requests.post(f"{BACKEND_URL}/detect", files=files, data=data)
 
     os.remove(temp_path)
 
@@ -43,10 +44,13 @@ def detectar_objetos(image):
 
 demo = gr.Interface(
     fn=detectar_objetos,
-    inputs=gr.Image(type='pil', label='Envie uma imagem'),
+    inputs=[
+        gr.Image(type="pil", label="Envie uma imagem"),
+        gr.Slider(0.1, 0.9, value=0.4, step=0.05, label="Nível de detecção")
+    ],
     outputs=[
-        gr.Image(type='filepath', label='Imagem processada'),
-        gr.Textbox(label='Resultado')
+        gr.Image(type="filepath", label="Imagem processada"),
+        gr.Textbox(label="Resultado")
     ],
     title='Detector de Objetos com YOLO',
     description='Envie uma imagem para detectar objetos via API REST.'
