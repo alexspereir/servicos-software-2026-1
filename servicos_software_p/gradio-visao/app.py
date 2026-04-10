@@ -45,7 +45,11 @@ def detectar_objetos(image, confidence):
 demo = gr.Interface(
     fn=detectar_objetos,
     inputs=[
-        gr.Image(type="pil", label="Envie uma imagem"),
+        gr.Image(
+            type="pil",
+            sources=["upload"],
+            label="Envie uma imagem"
+        ),
         gr.Slider(0.1, 0.9, value=0.4, step=0.05, label="Nível de detecção")
     ],
     outputs=[
