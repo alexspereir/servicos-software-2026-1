@@ -1,6 +1,7 @@
 # Detector de Objetos com YOLO
 
 Este projeto é uma aplicação multicontainer desenvolvida utilizando **Docker, API REST e Gradio**, com o objetivo de detectar objetos em imagens usando um modelo de visão computacional YOLO pré-treinado.
+
 Autor: Alexsander de Freitas Pereira Silva
 RA: 25.80197-8
 
